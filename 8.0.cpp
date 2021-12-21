@@ -2,43 +2,42 @@
 #include <fstream>
 #include <iostream>
 using namespace std;
-#define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
-#define MAXN 99
-#define INF 800000
 
-int i,j,k=0;
-char s[INF];
+#define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
+#define INF 800000
+#define MAXN 99
+
 int Chinese[MAXN][MAXN];
 
 int judge()
 {
-	int code=0;
-    unsigned char s2;
-    ifstream fin("Input.txt",ios::binary);
-    fin.read((char*)&s2, sizeof(s2));//读取第一个字节，然后左移8位
-    int p = s2<<8;
+	int format = 0;
+    unsigned char check;
+    ifstream File("Input.txt", ios::binary);
 
-    fin.read((char*)&s2, sizeof(s2));//读取第二个字节
-    p |=s2;
+    File.read((char *)&check, sizeof(unsigned char));//读取第一个字节，然后左移8位
+    int code = check << 8;
 
+    File.read((char *)&check, sizeof(unsigned char));//读取第二个字节
+    code |= check;
 
-    switch(p)
+    switch (code)
     {
 	    case 0xfffe:  //65534
-	        code = 1; //Unicode
+	        format = 1; //Unicode
 	        break;
 	    case 0xfeff:  //65279
-	        code = 2; //Unicode big endian
+	        format = 2; //Unicode big endian
 	        break;
 	    case 0xe5ad:
-	        code = 3; //UTF-8
+	        format = 3; //UTF-8
 	        break;
 	 	default:
-	        code = 4; //ANSI
+	        format = 4; //ANSI
 	        break;
      }
-     fin.close();
-     return code;
+     File.close();
+     return format;
 }
 
 string UTF8ToGB(const char* str)
@@ -56,29 +55,26 @@ string UTF8ToGB(const char* str)
     WideCharToMultiByte(CP_ACP, 0, strSrc, -1, szRes, i, NULL, NULL);
 
     result = szRes;
-    delete []strSrc;
-    delete []szRes;
+    delete [] strSrc;
+    delete [] szRes;
 
     return result;
 }
 
-void read(void)
+char *read(void)
 {
+	cout << "********************使用说明********************" << endl;
+	cout << "*                                              *" << endl;
+	cout << "* 1.请将要检索的文本放入“input”文档中        *" << endl;
+	cout << "*                                              *" << endl;
+	cout << "* 2.确认放入后，按下回车                       *" << endl;
+	cout << "*                                              *" << endl;
+	cout << "************************************************" << endl << endl; 
+	while (!KEY_DOWN(13));
 
-		cout << "********************使用说明********************" << endl;
-		cout << "*                                              *" << endl;
-		cout << "* 1.请将要检索的文本放入“input”文档中        *" << endl;
-		cout << "*                                              *" << endl;
-		cout << "* 2.确认放入后，按下回车                       *" << endl;
-		cout << "*                                              *" << endl;
-		cout << "************************************************" << endl << endl; 
-		while(!KEY_DOWN(13));
-		ifstream File("Input.txt");
-	ifstream findFile("Input.txt");
-	while(!findFile.is_open())
+	ifstream File("Input.txt");
+	while (!File.is_open())
 	{
-		Sleep(200);
-
 		cout << "无法找到文件!" << endl << endl;
 		cout << "********************使用方法********************" << endl;
 		cout << "*                                              *" << endl;
@@ -89,54 +85,66 @@ void read(void)
 		cout << "* 3. 按下回车键继续执行程序                    *" << endl;
 		cout << "*                                              *" << endl;
 		cout << "************************************************" << endl << endl;
+		while (!KEY_DOWN(13));
 
-		while(!KEY_DOWN(13));
-		ifstream File("Input.txt");
-		if(File.is_open())
-		{
-			break;
-		}
+		File.open("Input.txt");
 	}
 	cout << "正在读取文件..." << endl << endl;
-	ifstream readFile("Input.txt");
-	readFile.getline(s,INF,0);
-	readFile.close();
+	char *s = new char[INF];
+	File.getline(s, INF, 0);
+	File.close();
+	return s;
 }
 
-void find(char *x, int size)
+void find(char *x)
 {
 	string a = x;
-	int lx = judge();
-	if(lx == 3) a = UTF8ToGB(x);
-	for(i=0;i<size;){
-		if((int)a[i] >= 0){
+	int len = a.size();
+	if (judge() == 3)
+	{
+		a = UTF8ToGB(x);
+	}
+	for (int i=0;i<len;)
+	{
+		if ((int)a[i] >= 0)
+		{
 			i++;
 		}
-		else{
+		else
+		{
 			Chinese[-x[i]][-x[i+1]]++;
-			i+=2;
+			i += 2;
 		}
 	}
 }
 
-void output(){
+void output()
+{
 	cout << "正在输出结果..." << endl << endl;
 	ofstream OutFile("Output.txt");
 
 	/* B0A1 - FEA0 */
-
-	for(int i=0;i<=MAXN;i++){
-		for(int j=0;j<=MAXN;j++){
-			if((i*100+j<=290) || (i*100+j>=8716))
+	for (int i=0;i<=MAXN;i++)
+	{
+		for (int j=0;j<=MAXN;j++)
+		{
+			if ((i * 100 + j <= 290) || (i * 100 + j >= 8716))
+			{
 				continue;
-			if(Chinese[i][j]){
+			}
+			if (Chinese[i][j])
+			{
 				OutFile << (char)-i << (char)-j << " : " << Chinese[i][j] << " 次" << endl;
 			}
 		}
 	}
-	} 
-	
-void end(){
+}
+
+int main(void)
+{
+	char *s = read();
+	find(s);
+	output();
 	cout << "**********************完成**********************" << endl;
 	cout << "*                                              *" << endl;
 	cout << "*                检索工作已完成                *" << endl;
@@ -144,12 +152,5 @@ void end(){
 	cout << "*             请在output中查询结果             *" << endl;
 	cout << "*                                              *" << endl;
 	cout << "************************************************" << endl << endl;
-	Sleep(3000);
-}
-int main(void){
-	read();
-	find(s, strlen(s));
-	output();
-	end();
 }
 
